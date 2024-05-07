@@ -1,0 +1,121 @@
+---
+title: "Blatt_2"
+author: "Vanessa Kleisch"
+date: "2024-04-30"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(visreg)
+```
+
+
+## 5)
+### a)
+
+```{r}
+wdi <- get(load(here("C:/Users/famil/Documents/LiMo/data/wdi.Rdata")))
+wdi <- wdi %>% filter(year == 2013)
+str(wdi)
+head(wdi)
+
+a1 <- ggplot(wdi, aes(x = Population)) +
+  geom_density()
+a2 <- ggplot(wdi, aes(x = CO2emission)) +
+  geom_density()
+a1 | a2
+
+# Bivariate Analyse
+s3 <- ggplot(wdi, aes(x = Population, y = CO2emission)) +
+  geom_point() +
+  ggtitle("ohne Transformation")
+s4 <- ggplot(wdi, aes(x = log10(Population), y = log10(CO2emission))) +
+  geom_point() +
+  ggtitle("mit Transformation")
+s3|s4
+```
+
+### b
+
+```{r}
+transformed_wdi <- wdi %>% mutate(CO2emission = log10(CO2emission),
+                                  Population = log10(Population))
+model_1b <- lm(CO2emission ~ Population, wdi)
+summary(model_1b)
+model_1b2 <- lm(CO2emission ~ Population, transformed_wdi)
+summary(model_1b2)
+
+```
+Visualisierung
+
+```{r}
+s3 + geom_smooth(method = "lm", se =  FALSE) | s4 + geom_smooth(method = "lm", se =  FALSE)
+```
+
+
+### c)
+Density functions für alle Variablen machen:
+
+Daten zu long Format machen
+
+```{r}
+
+wdi_long <- reshape2::melt(wdi)
+head(wdi_long)
+ggplot(wdi_long, aes(x = value)) + 
+  geom_density() +
+  facet_wrap(facets = ~variable, scales = "free") +
+  theme_minimal()
+  
+```
+
+Verteilungen die sehr linksschief sind transformieren
+
+warum hier bei PopulationRural + 1??
+
+```{r}
+wdi_transformed <- wdi %>% mutate(Area = log10(Area), CO2emission = log10(CO2emission),
+                            Population = log10(Population), 
+                            PopulationRural = log10(PopulationRural),
+                            GDP = log10(GDP))
+wdi_longer <- reshape2::melt(wdi_transformed)
+ggplot(wdi_longer, aes(x = value)) + 
+  geom_density() +
+  facet_wrap(facets = ~variable, scales = "free") +
+  theme_minimal()
+```
+
+ wie visulalisiert man diese scatter plots??
+ noch aes ändern und facet wrap ausbessern
+```{r}
+wdi_longer2 <- wdi_longer %>% filter(variable == c("GDP",  "Area",  "Population", "Livestock", "CO2emission") )
+ggplot(wdi %>% select("GDP",  "Area",  "Population", "Livestock", "CO2emission") , aes(x = value, )) + 
+  geom_point() +
+  facet_wrap(facets = scales = "free") +
+  theme_minimal()
+wdi_longer
+```
+ 
+### d)
+ 
+Multiples lineares Regressionsmodell 
+```{r}
+model_5d <- lm(CO2emission ~ 
+                 Area + Population + Livestock + Employees.M.IND, 
+               wdi_transformed, 
+               na.action = na.exclude)
+summary(model_5d)
+```
+ 
+### e)
+
+```{r}
+
+```
+

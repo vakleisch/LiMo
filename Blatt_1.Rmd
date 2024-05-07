@@ -1,0 +1,165 @@
+---
+title: "Blatt 1"
+author: "Vanessa Kleisch"
+date: "2024-04-18"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(data.table)
+```
+
+## Aufgabe 1
+### 1a
+
+ALternative siehe Lösungsblatt
+```{r}
+data1 <- read_rds("RunningAgg.Rds")
+m1 <- ggplot(data1, aes(x = pace, y = HR)) +
+  geom_point()+
+  geom_smooth(method = "lm")
+m1
+```
+
+## 1b
+
+```{r}
+
+head(data1)
+data1$speed <- 60/data1$pace
+m2 <- ggplot(data1, aes(x = speed, y = HR)) +
+  geom_point()+
+  geom_smooth(method = "lm")
+m2
+
+# beide :
+
+m1 | m2
+```
+## 1d
+
+```{r}
+data1d <- data1 %>% mutate(HRbps = HR * 1/60, speedMi = pace* 1/ 1.61)
+head(data1d)
+```
+
+## 2
+### 2b
+
+```{r}
+set.seed(467)
+
+# ist die n = 10 wichtig?
+X <- runif(10000, 0, 10)
+Y <- -2 +3.5*X + rnorm(10000, 0, sqrt(10))
+
+variance2 <- 10 
+n <- 10000 # ANzhal Datenpunkte
+
+simdata <- data.frame(X, Y)
+head(simdata)
+```
+
+```{r}
+# Varianz Dach (warum ist ds jetzt die wahre? die Werte sind doch geschätzt?)
+b1dach <- 10/(n*var(X))
+b1dach
+b0dach <- 10*((1/n)+ ((mean(X))^2)/n*var(X))
+b0dach
+```
+
+Jetzt zu ermitteln: wie ist beta0 und beta1 verteilt? -> aus Daten lm Modell fitten (10 000 mal wiederholen)
+
+```{r}
+reps <- 10000
+fit <- matrix(ncol = 2, nrow = reps)
+for (i in 1:reps) {
+  # wählt zufällig aus unsren Daten 10 Datenpunkte heraus (Zeilen), aber why 10?
+  # -> Anzahl an x Werten 
+  sample_data <- simdata[sample(1:10000, 10),]
+  
+  # Aus diesen Daten ein lineares Modell fitten & Koeffizientenj beta extrahieren
+  fit[i, ] <- lm(X~Y, data = sample_data)$coefficients
+}
+head(sample_data)
+head(simdata)
+head(fit)
+```
+
+Grafischer Vergleich
+
+```{r}
+par(mfrow = c(1, 2))
+# Achsenabschnitt:
+hist(x = fit[, 1], cex.main = 1,
+     # titel & Achsen
+main = bquote(Distribution ~ of ~ 10000 ~ beta[0] ~ estimates),
+xlab = bquote(hat(beta)[0]), freq = FALSE)
+curve(dnorm(x = x, mean = -2, sd = sqrt(b0dach)), add = TRUE,
+col = "darkred")
+# Steigungsparameter:
+hist(x = fit[, 2], cex.main = 1,
+main = bquote(Distribution ~ of ~ 10000 ~ beta[1] ~ estimates),
+xlab = bquote(hat(beta)[1]), freq = FALSE)
+curve(dnorm(x = x, mean = 3.5, sd = sqrt(b1dach)), add = TRUE,
+col = "darkred")
+```
+
+
+## 3
+### a
+
+```{r}
+data3 <- data.frame("Größe" = c(198, 188, 196, 190, 180, 183, 196, 196, 193, 183),
+                    "Gewicht" = c(104, 84, 107, 95, 76, 79, 109, 94, 113, 93))
+ggplot(data3, aes(Größe, Gewicht)) +
+  geom_point()
+```
+
+positiver Zusammenhang erkennbar 
+
+### b
+
+```{r}
+y_strich <- mean(data3$Gewicht)
+gewicht <- data3$Gewicht
+größe <- data3$Größe
+x_strich <- mean(größe)
+y_strich
+sst <- sum((gewicht - y_strich)^2)
+sst
+```
+
+### c
+
+```{r}
+n <- 10
+beta1 <- cov(gewicht, größe)/var(größe)
+beta0 <- y_strich - beta1*x_strich
+beta0
+beta1
+```
+
+### d
+
+```{r}
+y_dach <- größe*beta1 + beta0
+
+sse <- sum((gewicht - y_dach)^2) 
+
+1 - sse/sst
+
+```
+
+### e
+
+```{r}
+model3e <- lm(Gewicht ~ Größe, data3)
+summary(model3e)
+```
+
